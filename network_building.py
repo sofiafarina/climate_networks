@@ -3,7 +3,24 @@ from scipy.io import loadmat
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import math
 
+
+# funzioni 
+
+def distance(origin, destination):
+    lat1, lon1 = origin
+    lat2, lon2 = destination
+    radius = 6371 # km
+
+    dlat = math.radians(lat2-lat1)
+    dlon = math.radians(lon2-lon1)
+    a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(lat1)) \
+        * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = radius * c
+
+    return d
 
 # variabili 
 
@@ -62,7 +79,8 @@ distanze = np.zeros((NP,NP));
 
 for i in range(1,NP):
     for j in range(1,NP):
-        distanze[i][j] = (coord_list[i][0]-coord_list[j][0])+(coord_list[i][1]-coord_list[j][1])
+        distanze[i][j] = distance((coord_list[i][0],coord_list[i][0]),(coord_list[i][1],coord_list[i][1]))
+        #distanze[i][j] = (coord_list[i][0]-coord_list[j][0])+coord_list[i][1]-coord_list[j][1])
         
 np.save("dm_p_812.npy",distanze)        
 
@@ -101,13 +119,24 @@ for i in range(1,SIZE):
 
 np.save("am_p_812.npy",adjacency)
 
-weighted = adjacency*distanze 
+weighted = np.abs(adjacency*distanze) 
 
 # creo il network a partire dalla matrice di adiacenza
 
 print("creating graph")
 
 G = nx.from_numpy_matrix(weighted, parallel_edges=False)
+prima = G.number_of_edges()
+print(prima)
+
+edge_weights = nx.get_edge_attributes(G,'weight')
+G.remove_edges_from((e for e, w in edge_weights.items() if w < 40.))
+dopo = G.number_of_edges()
+print(dopo)
+
+# rimozione dei link tra due nodi vicini
+# fare qualcosa di simile a [node for node,degree in dict(G.degree()).items() if degree > 2]
+# e poi rimuovere con remove_edges_from 
 
 # analisi del network
 
